@@ -1,15 +1,12 @@
 
+import re
 import streamlit as st
 
-st.set_page_config(
-    page_title="Message Translator",
-    page_icon="💬"
-)
+st.set_page_config(page_title="Message Translator", page_icon="💬")
 
 st.title("💬 Message Translator")
 st.subheader("Chat with Alex")
 st.caption("Messaging prototype — messages are simulated")
-
 
 # -----------------------------------
 # TRANSLATIONS
@@ -23,10 +20,10 @@ translations = {
         "good morning": "Buenos días",
         "are you free tomorrow?": "¿Estás libre mañana?",
         "see you later": "Hasta luego",
-        "i will see you next friday": "Nos vemos el próximo viernes",
+        "i will see you next friday": "Nos vemos el próximo viernes.",
+        "i'll see you next friday": "Nos vemos el próximo viernes.",
         "eyesight": "Vista"
     },
-
     "French": {
         "hello": "Bonjour",
         "how are you?": "Comment ça va ?",
@@ -34,10 +31,10 @@ translations = {
         "good morning": "Bonjour",
         "are you free tomorrow?": "Tu es libre demain ?",
         "see you later": "À plus tard",
-        "i will see you next friday": "Je te verrai vendredi prochain",
+        "i will see you next friday": "Je te verrai vendredi prochain.",
+        "i'll see you next friday": "Je te verrai vendredi prochain.",
         "eyesight": "Vue"
     },
-
     "Punjabi": {
         "hello": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ",
         "how are you?": "ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ?",
@@ -46,89 +43,108 @@ translations = {
         "are you free tomorrow?": "ਕੀ ਤੁਸੀਂ ਕੱਲ੍ਹ ਖਾਲੀ ਹੋ?",
         "see you later": "ਫਿਰ ਮਿਲਾਂਗੇ",
         "i will see you next friday": "ਅਗਲੇ ਸ਼ੁੱਕਰਵਾਰ ਮਿਲਾਂਗੇ",
+        "i'll see you next friday": "ਅਗਲੇ ਸ਼ੁੱਕਰਵਾਰ ਮਿਲਾਂਗੇ",
         "eyesight": "ਨਜ਼ਰ"
     }
 }
 
+# Month names for the date clarification example
+months = {
+    "Spanish": [
+        "enero", "febrero", "marzo", "abril",
+        "mayo", "junio", "julio", "agosto",
+        "septiembre", "octubre", "noviembre", "diciembre"
+    ],
+    "French": [
+        "janvier", "février", "mars", "avril",
+        "mai", "juin", "juillet", "août",
+        "septembre", "octobre", "novembre", "décembre"
+    ],
+    "Punjabi": [
+        "ਜਨਵਰੀ", "ਫ਼ਰਵਰੀ", "ਮਾਰਚ", "ਅਪ੍ਰੈਲ",
+        "ਮਈ", "ਜੂਨ", "ਜੁਲਾਈ", "ਅਗਸਤ",
+        "ਸਤੰਬਰ", "ਅਕਤੂਬਰ", "ਨਵੰਬਰ", "ਦਸੰਬਰ"
+    ]
+}
 
 # -----------------------------------
 # SESSION STATE
 # -----------------------------------
 
-# Store conversation history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Store the current message
 if "draft" not in st.session_state:
     st.session_state.draft = ""
 
-# Store translation preview
 if "preview" not in st.session_state:
     st.session_state.preview = None
 
-# Store editable translation
-if "edited_translation" not in st.session_state:
-    st.session_state.edited_translation = ""
+if "preview_number" not in st.session_state:
+    st.session_state.preview_number = 0
 
 
 # -----------------------------------
 # FUNCTIONS
 # -----------------------------------
 
+def normalise(text):
+    return text.strip().lower().rstrip(".! ")
+
+
 def preview_message():
-
     message = st.session_state.draft.strip()
-    language = st.session_state.language
 
-    if not message:
-        return
+    if message:
+        st.session_state.preview = (
+            message,
+            st.session_state.language
+        )
 
-    # Standardise message
-    key = message.lower().rstrip(".!")
-
-    # Look up translation
-    translation = translations[language].get(key, "")
-
-    # Store preview details
-    st.session_state.preview = (message, language)
-    st.session_state.edited_translation = translation
+        st.session_state.preview_number += 1
 
 
-def send_message():
-
-    message = st.session_state.draft.strip()
-    language = st.session_state.language
-
-    # Check translation is for the current message
-    if st.session_state.preview != (message, language):
-        return
-
-    translated = st.session_state.edited_translation.strip()
+def send_message(original, translation_key, language):
+    translated = st.session_state[translation_key].strip()
 
     if not translated:
         return
 
-    # Add message to conversation
     st.session_state.messages.append({
         "sender": "user",
-        "original": message,
+        "original": original,
         "translated": translated,
         "language": language
     })
 
-    # Reset input fields
     st.session_state.draft = ""
     st.session_state.preview = None
-    st.session_state.edited_translation = ""
 
 
 def clear_conversation():
-
     st.session_state.messages = []
     st.session_state.draft = ""
     st.session_state.preview = None
-    st.session_state.edited_translation = ""
+
+
+def clarify_example_translation(selected_date, language):
+    """
+    Translate the clarified version of the known
+    'I will see you next Friday' example.
+    """
+
+    day = selected_date.day
+    month = months[language][selected_date.month - 1]
+    year = selected_date.year
+
+    if language == "Spanish":
+        return f"Nos vemos el {day} de {month} de {year}."
+
+    elif language == "French":
+        return f"Je te verrai le {day} {month} {year}."
+
+    else:
+        return f"{day} {month} {year} ਨੂੰ ਮਿਲਾਂਗੇ।"
 
 
 # -----------------------------------
@@ -137,7 +153,6 @@ def clear_conversation():
 
 st.write("### Conversation")
 
-# Clear conversation button
 st.button(
     "🗑️ Clear conversation",
     on_click=clear_conversation
@@ -146,60 +161,39 @@ st.button(
 if not st.session_state.messages:
     st.info("No messages yet. Start a conversation below.")
 
-
-# Display chat messages
 for message in st.session_state.messages:
 
-    sender = message.get("sender", "user")
+    with st.chat_message("user"):
 
-    # Old message formats are supported too
-    if sender in ("user", "You"):
-        role = "user"
-    else:
-        role = "assistant"
-
-    with st.chat_message(role):
-
-        # FIX: Handle messages from previous versions
+        # Support messages from older versions too
         text = message.get(
             "translated",
-            message.get(
-                "text",
-                message.get("original", "")
-            )
+            message.get("text", message.get("original", ""))
         )
 
         st.write(text)
 
-        # Show original underneath translated message
         if "translated" in message:
-
-            language = message.get("language", "Unknown")
-            original = message.get("original", "")
-
             st.caption(
-                f"Translated to {language} | "
-                f"Original: {original}"
+                f"Translated to {message.get('language', 'Unknown')} | "
+                f"Original: {message.get('original', '')}"
             )
-
 
 st.divider()
 
 
 # -----------------------------------
-# MESSAGE INPUT
+# NEW MESSAGE
 # -----------------------------------
 
 st.write("### New Message")
 
-# Select language
-language = st.selectbox(
+st.selectbox(
     "Translate into:",
     ["Spanish", "French", "Punjabi"],
     key="language"
 )
 
-# Type message
 st.text_area(
     "Type your message:",
     key="draft",
@@ -207,7 +201,6 @@ st.text_area(
     placeholder="Type a message to Alex..."
 )
 
-# Preview button
 st.button(
     "🌐 Preview translation",
     on_click=preview_message,
@@ -216,7 +209,7 @@ st.button(
 
 
 # -----------------------------------
-# TRANSLATION PREVIEW
+# TRANSLATION & CLARIFICATION
 # -----------------------------------
 
 current_preview = (
@@ -226,48 +219,127 @@ current_preview = (
 
 if st.session_state.preview == current_preview:
 
-    st.write(f"### {language} Translation")
+    original, language = current_preview
+    key = normalise(original)
 
-    # Editable translated text
+    translation = translations[language].get(key, "")
+    revised_original = original
+
+    ready_to_send = True
+    choice = "Not needed"
+    selected_date = None
+
+    # Detect "next Friday"
+    if re.search(r"\bnext friday\b", original, re.IGNORECASE):
+
+        st.warning(
+            "⚠️ 'Next Friday' could refer to different dates. "
+            "Would you like to clarify it?"
+        )
+
+        choice = st.radio(
+            "How would you like to handle this?",
+            ["Keep original wording", "Specify exact date"],
+            index=None,
+            key=f"choice_{st.session_state.preview_number}"
+        )
+
+        # Require a choice before sending
+        ready_to_send = choice is not None
+
+        # User chooses to clarify
+        if choice == "Specify exact date":
+
+            selected_date = st.date_input(
+                "Which exact Friday do you mean?",
+                value=None,
+                key=f"date_{st.session_state.preview_number}"
+            )
+
+            if selected_date is None:
+                ready_to_send = False
+
+            elif selected_date.weekday() != 4:
+                st.warning("Please select a Friday.")
+                ready_to_send = False
+
+            else:
+                # Replace "next Friday" with the chosen date
+                date_text = (
+                    f"{selected_date.day} "
+                    f"{selected_date.strftime('%B')} "
+                    f"{selected_date.year}"
+                )
+
+                revised_original = re.sub(
+                    r"\bnext friday\b",
+                    f"on {date_text}",
+                    original,
+                    flags=re.IGNORECASE
+                )
+
+                # Automatic date translation only for
+                # our supported example sentence
+                supported_examples = {
+                    "i will see you next friday",
+                    "i'll see you next friday"
+                }
+
+                if key in supported_examples:
+                    translation = clarify_example_translation(
+                        selected_date,
+                        language
+                    )
+
+                else:
+                    translation = ""
+
+                    st.info(
+                        "This sentence is not supported by the "
+                        "demo's date translations. "
+                        "Enter the translation manually."
+                    )
+
+    # Display the message after any clarification
+    st.write("### Message preview")
+    st.info(revised_original)
+
+    # Use a new editable field whenever the date or
+    # clarification choice changes
+    date_id = (
+        selected_date.isoformat()
+        if selected_date is not None
+        else "none"
+    )
+
+    edit_key = (
+        f"edit_{st.session_state.preview_number}_"
+        f"{language}_{choice}_{date_id}"
+    )
+
+    if edit_key not in st.session_state:
+        st.session_state[edit_key] = translation
+
     st.text_area(
-        "Edit translation before sending:",
-        key="edited_translation",
+        f"Review or edit {language} translation:",
+        key=edit_key,
         height=100
     )
 
-    if not st.session_state.edited_translation.strip():
+    if not st.session_state[edit_key].strip():
         st.warning(
             "No predefined translation found. "
             "Enter a translation manually to continue."
         )
 
-    # Meaning check
-    user_message = st.session_state.draft.lower()
-
-    if "next friday" in user_message:
-        st.warning(
-            "Meaning check: 'Next Friday' could refer "
-            "to different calendar dates."
-        )
-
-    elif "tomorrow" in user_message:
-        st.warning(
-            "Meaning check: 'Tomorrow' depends on "
-            "the date and time zone."
-        )
-
-    elif "later" in user_message:
-        st.warning(
-            "Meaning check: 'Later' does not "
-            "specify an exact time."
-        )
-
-    # Send button
+    # Send only after the user has handled the warning
     st.button(
         "📤 Send message",
         on_click=send_message,
-        disabled=not bool(
-            st.session_state.edited_translation.strip()
+        args=(revised_original, edit_key, language),
+        disabled=not (
+            ready_to_send
+            and bool(st.session_state[edit_key].strip())
         )
     )
 
@@ -279,5 +351,6 @@ elif st.session_state.preview is not None:
     )
 
 st.caption(
-    "Messages are simulated and are not delivered to a real person."
+    "All messages are simulated. "
+    "Nothing is sent to another person."
 )
