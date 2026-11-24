@@ -2,7 +2,7 @@
 import streamlit as st
 
 st.title("Message Translator")
-st.write("Enter a message to translate.")
+st.write("Enter a message and choose a language.")
 
 # Spanish translations
 spanish_translations = {
@@ -12,7 +12,8 @@ spanish_translations = {
     "good morning": "Buenos días",
     "are you free tomorrow?": "¿Estás libre mañana?",
     "see you later": "Hasta luego",
-    "i will see you next friday": "Nos vemos el próximo viernes"
+    "i will see you next friday": "Nos vemos el próximo viernes",
+    "eyesight": "Vista"
 }
 
 # French translations
@@ -23,16 +24,29 @@ french_translations = {
     "good morning": "Bonjour",
     "are you free tomorrow?": "Tu es libre demain ?",
     "see you later": "À plus tard",
-    "i will see you next friday": "Je te verrai vendredi prochain"
+    "i will see you next friday": "Je te verrai vendredi prochain",
+    "eyesight": "Vue"
 }
 
-# Select translation language
+# Punjabi translations (Gurmukhi)
+punjabi_translations = {
+    "hello": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ",
+    "how are you?": "ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ?",
+    "thank you": "ਧੰਨਵਾਦ",
+    "good morning": "ਸ਼ੁਭ ਸਵੇਰ",
+    "are you free tomorrow?": "ਕੀ ਤੁਸੀਂ ਕੱਲ੍ਹ ਖਾਲੀ ਹੋ?",
+    "see you later": "ਫਿਰ ਮਿਲਾਂਗੇ",
+    "i will see you next friday": "ਅਗਲੇ ਸ਼ੁੱਕਰਵਾਰ ਮਿਲਾਂਗੇ",
+    "eyesight": "ਨਜ਼ਰ"
+}
+
+# Choose language
 language = st.selectbox(
     "Select translation language:",
-    ["Spanish", "French"]
+    ["Spanish", "French", "Punjabi"]
 )
 
-# User input
+# Enter message
 message = st.text_input("Enter your message:")
 
 if st.button("Translate"):
@@ -41,19 +55,22 @@ if st.button("Translate"):
         st.warning("Please enter a message first.")
 
     else:
-        # Standardise the message
         user_message = message.strip().lower()
 
         st.write("Original message:")
         st.info(message)
 
-        # Choose the correct translation dictionary
+        # Select translation dictionary
         if language == "Spanish":
             translations = spanish_translations
-        else:
+
+        elif language == "French":
             translations = french_translations
 
-        # Find the translation
+        else:
+            translations = punjabi_translations
+
+        # Display translation
         if user_message in translations:
             translation = translations[user_message]
 
@@ -65,17 +82,17 @@ if st.button("Translate"):
                 "This message is not available in the demo translator yet."
             )
 
-        # Detect potentially ambiguous wording
-        if "tomorrow" in user_message:
-            st.warning(
-                "Meaning check: 'Tomorrow' depends on the date "
-                "and time zone of the conversation."
-            )
-
-        elif "next friday" in user_message:
+        # Meaning checks
+        if "next friday" in user_message:
             st.warning(
                 "Meaning check: 'Next Friday' could refer "
                 "to different calendar dates."
+            )
+
+        elif "tomorrow" in user_message:
+            st.warning(
+                "Meaning check: 'Tomorrow' depends on the date "
+                "and time zone of the conversation."
             )
 
         elif "later" in user_message:
