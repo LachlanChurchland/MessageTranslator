@@ -2,9 +2,9 @@
 import streamlit as st
 
 st.title("Message Translator")
-st.write("Enter a message to translate from English to Spanish.")
+st.write("Enter a message to translate.")
 
-# Example translations
+# Example Spanish translations
 translations = {
     "hello": "Hola",
     "how are you?": "¿Cómo estás?",
@@ -14,6 +14,12 @@ translations = {
     "see you later": "Hasta luego",
     "i will see you next friday": "Nos vemos el próximo viernes"
 }
+
+# Select translation language
+language = st.selectbox(
+    "Select translation language:",
+    ["Spanish", "French"]
+)
 
 # User input
 message = st.text_input("Enter your message:")
@@ -49,13 +55,13 @@ if st.button("Translate"):
                 "and time zone of the conversation."
             )
 
-        elif "later" in user_message:
-            st.warning(
-                "Meaning check: 'Later' does not specify an exact time."
-            )
-
         elif "next friday" in user_message:
             st.warning(
                 "Meaning check: 'Next Friday' could refer "
                 "to different calendar dates."
+            )
+
+        elif "later" in user_message:
+            st.warning(
+                "Meaning check: 'Later' does not specify an exact time."
             )
