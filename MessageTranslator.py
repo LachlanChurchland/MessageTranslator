@@ -4,8 +4,8 @@ import streamlit as st
 st.title("Message Translator")
 st.write("Enter a message to translate.")
 
-# Example Spanish translations
-translations = {
+# Spanish translations
+spanish_translations = {
     "hello": "Hola",
     "how are you?": "¿Cómo estás?",
     "thank you": "Gracias",
@@ -13,6 +13,17 @@ translations = {
     "are you free tomorrow?": "¿Estás libre mañana?",
     "see you later": "Hasta luego",
     "i will see you next friday": "Nos vemos el próximo viernes"
+}
+
+# French translations
+french_translations = {
+    "hello": "Bonjour",
+    "how are you?": "Comment ça va ?",
+    "thank you": "Merci",
+    "good morning": "Bonjour",
+    "are you free tomorrow?": "Tu es libre demain ?",
+    "see you later": "À plus tard",
+    "i will see you next friday": "Je te verrai vendredi prochain"
 }
 
 # Select translation language
@@ -30,17 +41,23 @@ if st.button("Translate"):
         st.warning("Please enter a message first.")
 
     else:
-        # Standardise the message for matching
+        # Standardise the message
         user_message = message.strip().lower()
 
         st.write("Original message:")
         st.info(message)
 
-        # Find a predefined translation
+        # Choose the correct translation dictionary
+        if language == "Spanish":
+            translations = spanish_translations
+        else:
+            translations = french_translations
+
+        # Find the translation
         if user_message in translations:
             translation = translations[user_message]
 
-            st.write("Spanish translation:")
+            st.write(f"{language} translation:")
             st.success(translation)
 
         else:
