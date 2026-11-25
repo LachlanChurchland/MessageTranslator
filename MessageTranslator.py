@@ -4,9 +4,11 @@ import re
 import streamlit as st
 
 st.set_page_config(page_title="Message Translator", page_icon="💬")
+
 st.title("💬 Message Translator")
 st.subheader("Chat with Alex")
-st.caption("Messaging prototype — nothing is sent to a real person")
+st.caption("Messaging prototype — messages are simulated")
+
 
 # -----------------------------------
 # PREDEFINED TRANSLATIONS
@@ -27,6 +29,7 @@ translations = {
         "meet me at 12 king street": "Nos vemos en el número 12 de King Street.",
         "eyesight": "Vista",
     },
+
     "French": {
         "hello": "Bonjour",
         "how are you?": "Comment ça va ?",
@@ -38,9 +41,10 @@ translations = {
         "i'll see you next friday": "Je te verrai vendredi prochain.",
         "see you next friday": "À vendredi prochain.",
         "the ticket costs £20": "Le billet coûte 20 livres sterling.",
-        "meet me at 12 king street": "Nos vemos en el número 12 de King Street.",
-        "eyesight": "Vista",
+        "meet me at 12 king street": "Retrouve-moi au 12 King Street.",
+        "eyesight": "Vue",
     },
+
     "Punjabi": {
         "hello": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ",
         "how are you?": "ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ?",
@@ -57,18 +61,6 @@ translations = {
     },
 }
 
-# Correct the two French entries
-translations["French"]["meet me at 12 king street"] = (
-    "Retrouve-moi au 12 King Street."
-)
-translations["French"]["eyesight"] = "Vue"
-
-# Correct the Spanish entries
-translations["Spanish"]["meet me at 12 king street"] = (
-    "Nos vemos en el número 12 de King Street."
-)
-translations["Spanish"]["eyesight"] = "Vista"
-
 
 # -----------------------------------
 # MONTH NAMES
@@ -76,16 +68,21 @@ translations["Spanish"]["eyesight"] = "Vista"
 
 month_names = {
     "Spanish": [
-        "enero", "febrero", "marzo", "abril", "mayo", "junio",
-        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+        "enero", "febrero", "marzo", "abril",
+        "mayo", "junio", "julio", "agosto",
+        "septiembre", "octubre", "noviembre", "diciembre"
     ],
+
     "French": [
-        "janvier", "février", "mars", "avril", "mai", "juin",
-        "juillet", "août", "septembre", "octobre", "novembre", "décembre"
+        "janvier", "février", "mars", "avril",
+        "mai", "juin", "juillet", "août",
+        "septembre", "octobre", "novembre", "décembre"
     ],
+
     "Punjabi": [
-        "ਜਨਵਰੀ", "ਫ਼ਰਵਰੀ", "ਮਾਰਚ", "ਅਪ੍ਰੈਲ", "ਮਈ", "ਜੂਨ",
-        "ਜੁਲਾਈ", "ਅਗਸਤ", "ਸਤੰਬਰ", "ਅਕਤੂਬਰ", "ਨਵੰਬਰ", "ਦਸੰਬਰ"
+        "ਜਨਵਰੀ", "ਫ਼ਰਵਰੀ", "ਮਾਰਚ", "ਅਪ੍ਰੈਲ",
+        "ਮਈ", "ਜੂਨ", "ਜੁਲਾਈ", "ਅਗਸਤ",
+        "ਸਤੰਬਰ", "ਅਕਤੂਬਰ", "ਨਵੰਬਰ", "ਦਸੰਬਰ"
     ],
 }
 
@@ -94,15 +91,20 @@ month_names = {
 # SESSION STATE
 # -----------------------------------
 
-for state_key, default in {
-    "messages": [],
-    "draft": "",
-    "preview": None,
-    "preview_number": 0,
-    "translate_before_sending": True,
-}.items():
-    if state_key not in st.session_state:
-        st.session_state[state_key] = default
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+if "draft" not in st.session_state:
+    st.session_state.draft = ""
+
+if "preview" not in st.session_state:
+    st.session_state.preview = None
+
+if "preview_number" not in st.session_state:
+    st.session_state.preview_number = 0
+
+if "translate_before_sending" not in st.session_state:
+    st.session_state.translate_before_sending = True
 
 
 # -----------------------------------
@@ -110,65 +112,53 @@ for state_key, default in {
 # -----------------------------------
 
 def normalise(text):
+    """Standardise messages for dictionary matching."""
+
     return " ".join(
-        text.strip().lower().replace("’", "'").rstrip(".!? ").split()
+        text.strip()
+        .lower()
+        .replace("’", "'")
+        .rstrip(".!? ")
+        .split()
     )
 
 
-def important_details(text):
-    """Rule-based detection of dates, prices and street addresses."""
+def sensitive_details(text):
+    """
+    Detect prices and addresses that deserve
+    additional confirmation.
+    """
 
-    findings = []
+    found = []
 
-    weekday = (
-        r"monday|tuesday|wednesday|thursday|friday|saturday|sunday"
-    )
-
-    month = (
-        r"january|february|march|april|may|june|july|august|"
-        r"september|october|november|december"
-    )
-
-    # Detect dates
-    date_pattern = (
-        rf"\b(?:today|tomorrow|tonight|{weekday})\b"
-        rf"|\b\d{{1,2}}\s+(?:{month})\b"
-        rf"|\b(?:{month})\s+\d{{1,2}}\b"
-        r"|\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b"
-        r"|\b\d{4}-\d{2}-\d{2}\b"
-    )
-
-    if re.search(date_pattern, text, re.IGNORECASE):
-        findings.append("Date or time")
-
-    # Detect prices
     price_pattern = (
         r"[£€$₹]\s*\d[\d,.]*"
         r"|\b\d[\d,.]*\s*"
         r"(?:pounds?|euros?|dollars?|rupees?|gbp|usd|eur)\b"
     )
 
-    if re.search(price_pattern, text, re.IGNORECASE):
-        findings.append("Price or payment amount")
-
-    # Detect street addresses
-    street_pattern = (
+    address_pattern = (
         r"\b\d{1,5}\s+"
         r"(?:[A-Za-z.'-]+\s+){0,4}"
-        r"(?:Street|St|Road|Rd|Avenue|Ave|Lane|Ln|Drive|Dr|Boulevard|Blvd)\b"
+        r"(?:Street|St|Road|Rd|Avenue|Ave|Lane|Ln|"
+        r"Drive|Dr|Boulevard|Blvd)\b"
     )
 
-    if re.search(street_pattern, text, re.IGNORECASE):
-        findings.append("Street address")
+    if re.search(price_pattern, text, re.IGNORECASE):
+        found.append("price")
 
-    return findings
+    if re.search(address_pattern, text, re.IGNORECASE):
+        found.append("street address")
+
+    return found
 
 
-def translated_date(selected_date, language):
+def translated_date(date, language):
+    """Translate the date for supported examples."""
 
-    day = selected_date.day
-    month = month_names[language][selected_date.month - 1]
-    year = selected_date.year
+    day = date.day
+    month = month_names[language][date.month - 1]
+    year = date.year
 
     if language == "Spanish":
         return f"Nos vemos el {day} de {month} de {year}."
@@ -196,18 +186,46 @@ def preview_message():
         st.session_state.preview_number += 1
 
 
-def send_untranslated():
-    """Send original text to simulated conversation."""
+def clear_conversation():
 
-    message = st.session_state.draft.strip()
+    st.session_state.messages = []
+    st.session_state.draft = ""
+    st.session_state.preview = None
 
-    if not message or st.session_state.translate_before_sending:
+
+def send_original(message=None, from_preview=False, ready=True):
+    """Send a message without translating it."""
+
+    if not ready:
+        return
+
+    if from_preview:
+
+        if not st.session_state.translate_before_sending:
+            return
+
+        if st.session_state.preview != (
+            st.session_state.draft.strip(),
+            st.session_state.language
+        ):
+            return
+
+        text = message.strip()
+
+    else:
+
+        if st.session_state.translate_before_sending:
+            return
+
+        text = st.session_state.draft.strip()
+
+    if not text:
         return
 
     st.session_state.messages.append({
         "sender": "user",
-        "text": message,
-        "untranslated": True,
+        "text": text,
+        "untranslated": True
     })
 
     st.session_state.draft = ""
@@ -216,10 +234,14 @@ def send_untranslated():
 
 def send_translated(
     original,
-    translation_field,
     language,
-    confirm_field
+    translation,
+    confirm_key,
+    ready=True
 ):
+
+    if not ready:
+        return
 
     if not st.session_state.translate_before_sending:
         return
@@ -230,37 +252,25 @@ def send_translated(
     ):
         return
 
-    translated = st.session_state.get(
-        translation_field, ""
-    ).strip()
-
-    if not translated:
+    if not translation.strip():
         return
 
-    # Require confirmation for important details
-    if important_details(original + "\n" + translated):
+    # Confirm only sensitive information
+    if sensitive_details(original):
 
         if (
-            not confirm_field
-            or not st.session_state.get(confirm_field, False)
+            not confirm_key
+            or not st.session_state.get(confirm_key, False)
         ):
             return
 
-    # Store translated message
     st.session_state.messages.append({
         "sender": "user",
         "original": original,
-        "translated": translated,
-        "language": language,
+        "translated": translation.strip(),
+        "language": language
     })
 
-    st.session_state.draft = ""
-    st.session_state.preview = None
-
-
-def clear_conversation():
-
-    st.session_state.messages = []
     st.session_state.draft = ""
     st.session_state.preview = None
 
@@ -281,23 +291,25 @@ if not st.session_state.messages:
 
 for item in st.session_state.messages:
 
+    sender = item.get("sender", "user")
+
     role = (
         "user"
-        if item.get("sender", "user") in ("user", "You")
+        if sender in ("user", "You")
         else "assistant"
     )
 
     with st.chat_message(role):
 
-        st.write(
+        text = item.get(
+            "translated",
             item.get(
-                "translated",
-                item.get(
-                    "text",
-                    item.get("original", "")
-                )
+                "text",
+                item.get("original", "")
             )
         )
+
+        st.write(text)
 
         if "translated" in item:
 
@@ -306,40 +318,39 @@ for item in st.session_state.messages:
                 f"Original: {item.get('original', '')}"
             )
 
-        elif item.get("untranslated", False):
+        elif item.get("untranslated"):
 
             st.caption("Sent without translation")
+
 
 st.divider()
 
 
 # -----------------------------------
-# NEW MESSAGE
+# MESSAGE INPUT
 # -----------------------------------
 
 st.write("### New message")
 
-# NEW: Enable or disable translation
 st.checkbox(
     "Translate before sending",
     key="translate_before_sending",
-    on_change=reset_preview,
+    on_change=reset_preview
 )
 
-# Only show language selection when translating
 if st.session_state.translate_before_sending:
 
     st.selectbox(
         "Translate into:",
         ["Spanish", "French", "Punjabi"],
-        key="language",
+        key="language"
     )
 
 st.text_area(
     "Type your message:",
     key="draft",
     height=100,
-    placeholder="Type a message to Alex...",
+    placeholder="Type a message to Alex..."
 )
 
 
@@ -350,20 +361,16 @@ st.text_area(
 if not st.session_state.translate_before_sending:
 
     st.button(
-        "📤 Send original message (simulation)",
-        on_click=send_untranslated,
+        "📤 Send original message",
+        on_click=send_original,
         disabled=not bool(
             st.session_state.draft.strip()
-        ),
-    )
-
-    st.caption(
-        "Your message will appear exactly as typed."
+        )
     )
 
 
 # -----------------------------------
-# SEND WITH TRANSLATION
+# TRANSLATION MODE
 # -----------------------------------
 
 else:
@@ -373,12 +380,12 @@ else:
         on_click=preview_message,
         disabled=not bool(
             st.session_state.draft.strip()
-        ),
+        )
     )
 
     current_preview = (
         st.session_state.draft.strip(),
-        st.session_state.language,
+        st.session_state.language
     )
 
     if st.session_state.preview == current_preview:
@@ -389,18 +396,22 @@ else:
 
         revised_original = original
 
-        # Get predefined translation
-        translated = {
-            normalise(k): v
-            for k, v in translations[language].items()
-        }.get(key, "")
+        # Find matching translation
+        translation = next(
+            (
+                value
+                for phrase, value in translations[language].items()
+                if normalise(phrase) == key
+            ),
+            ""
+        )
 
-        selected_date = None
-        choice = "Not needed"
         ready = True
+        selected_date = None
+
 
         # -----------------------------------
-        # DETECT AMBIGUOUS "NEXT FRIDAY"
+        # OPTIONAL DATE CLARIFICATION
         # -----------------------------------
 
         if re.search(
@@ -409,39 +420,29 @@ else:
             re.IGNORECASE
         ):
 
-            st.warning(
-                "'Next Friday' may refer to different dates. "
-                "Would you like to clarify?"
+            st.info(
+                "'Next Friday' can mean different dates."
             )
 
-            choice = st.radio(
-                "How would you like to handle this?",
-                [
-                    "Keep original wording",
-                    "Specify exact date"
-                ],
-                index=None,
-                key=f"choice_{st.session_state.preview_number}",
+            clarify = st.checkbox(
+                "Specify the exact Friday (optional)",
+                key=f"clarify_{st.session_state.preview_number}"
             )
 
-            ready = choice is not None
-
-            # -----------------------------------
-            # CLARIFY EXACT DATE
-            # -----------------------------------
-
-            if choice == "Specify exact date":
+            if clarify:
 
                 selected_date = st.date_input(
-                    "Which exact Friday do you mean?",
+                    "Choose the intended Friday:",
                     value=None,
-                    key=f"date_{st.session_state.preview_number}",
+                    key=f"date_{st.session_state.preview_number}"
                 )
 
                 if selected_date is None:
+
                     ready = False
 
                 elif selected_date.weekday() != 4:
+
                     st.warning("Please choose a Friday.")
                     ready = False
 
@@ -457,31 +458,26 @@ else:
                         r"\b(?:on\s+)?next\s+friday\b",
                         f"on {date_text}",
                         original,
-                        flags=re.IGNORECASE,
+                        flags=re.IGNORECASE
                     )
 
                     supported = {
                         "i will see you next friday",
                         "i'll see you next friday",
-                        "see you next friday",
+                        "see you next friday"
                     }
 
                     if key in supported:
 
-                        translated = translated_date(
+                        translation = translated_date(
                             selected_date,
                             language
                         )
 
                     else:
 
-                        translated = ""
+                        translation = ""
 
-                        st.info(
-                            "The demo has no automatic date "
-                            "translation for this sentence. "
-                            "Enter it manually."
-                        )
 
         # -----------------------------------
         # MESSAGE PREVIEW
@@ -489,7 +485,7 @@ else:
 
         st.write("### Message preview")
 
-        st.info(revised_original)
+        st.caption(f"English: {revised_original}")
 
         date_id = (
             selected_date.isoformat()
@@ -499,35 +495,97 @@ else:
 
         edit_key = (
             f"edit_{st.session_state.preview_number}_"
-            f"{language}_{choice}_{date_id}"
+            f"{language}_{date_id}"
         )
 
-        if edit_key not in st.session_state:
-            st.session_state[edit_key] = translated
 
-        st.text_area(
-            f"Review or edit {language} translation:",
-            key=edit_key,
-            height=100,
-        )
+        # -----------------------------------
+        # TRANSLATION AVAILABLE
+        # -----------------------------------
 
-        current_translation = (
-            st.session_state[edit_key].strip()
-        )
+        if translation:
 
-        if not current_translation:
-
-            st.warning(
-                "No automatic translation found. "
-                "Enter one manually to continue."
+            st.info(
+                f"Suggested translation: {translation}"
             )
+
+            # NEW: Editing is optional
+            edit_choice = st.checkbox(
+                "✏️ Translation looks wrong? Edit it",
+                key=(
+                    f"edit_choice_"
+                    f"{st.session_state.preview_number}_"
+                    f"{date_id}"
+                )
+            )
+
+            if edit_key not in st.session_state:
+                st.session_state[edit_key] = translation
+
+            if edit_choice:
+
+                st.text_area(
+                    "Correct the translated message:",
+                    key=edit_key,
+                    height=90
+                )
+
+                final_translation = (
+                    st.session_state[edit_key].strip()
+                )
+
+            else:
+
+                final_translation = translation
+
+
+        # -----------------------------------
+        # TRANSLATION UNAVAILABLE
+        # -----------------------------------
+
+        else:
+
+            st.info(
+                "This wording isn't in the demo's "
+                "translation library. You can rephrase "
+                "it above, send the English message, "
+                "or enter a translation yourself."
+            )
+
+            if edit_key not in st.session_state:
+                st.session_state[edit_key] = ""
+
+            st.text_area(
+                "Enter your own translation (optional):",
+                key=edit_key,
+                height=90
+            )
+
+            final_translation = (
+                st.session_state[edit_key].strip()
+            )
+
+            # Let user send original text instead
+            st.button(
+                "📤 Send English instead",
+                on_click=send_original,
+                args=(
+                    revised_original,
+                    True,
+                    ready
+                ),
+                disabled=not ready
+            )
+
 
         # -----------------------------------
         # RISK-SENSITIVE CONFIRMATION
         # -----------------------------------
 
-        risks = important_details(
-            revised_original + "\n" + current_translation
+        risks = (
+            sensitive_details(revised_original)
+            if final_translation
+            else []
         )
 
         confirm_key = None
@@ -535,60 +593,53 @@ else:
         if risks:
 
             st.warning(
-                "⚠️ Important details detected: "
-                + ", ".join(risks)
-                + ". Check them before sending."
+                "Please check the "
+                + " and ".join(risks)
+                + " in the translation."
             )
 
-            st.caption(
-                "This is a basic pattern check, "
-                "not a guarantee that the translation is accurate."
-            )
-
-            # Reset confirmation if message changes
-            content_signature = hashlib.sha256(
+            # Confirmation resets when translation changes
+            signature = hashlib.sha256(
                 (
-                    f"{st.session_state.preview_number}|"
                     f"{revised_original}|"
                     f"{language}|"
-                    f"{current_translation}"
+                    f"{final_translation}"
                 ).encode("utf-8")
             ).hexdigest()[:16]
 
             confirm_key = (
-                f"approve_{content_signature}"
+                f"approve_"
+                f"{st.session_state.preview_number}_"
+                f"{signature}"
             )
 
             approved = st.checkbox(
-                "I have checked these details "
-                "and approve this translation",
-                key=confirm_key,
+                "I've checked these important details",
+                key=confirm_key
             )
 
             ready = ready and approved
+
 
         # -----------------------------------
         # SEND TRANSLATED MESSAGE
         # -----------------------------------
 
-        st.button(
-            (
-                "✅ Confirm & send (simulation)"
-                if risks
-                else "📤 Send message (simulation)"
-            ),
-            on_click=send_translated,
-            args=(
-                revised_original,
-                edit_key,
-                language,
-                confirm_key
-            ),
-            disabled=not (
-                ready
-                and bool(current_translation)
-            ),
-        )
+        if final_translation:
+
+            st.button(
+                "📤 Send translated message",
+                on_click=send_translated,
+                args=(
+                    revised_original,
+                    language,
+                    final_translation,
+                    confirm_key,
+                    ready
+                ),
+                disabled=not ready
+            )
+
 
     elif st.session_state.preview is not None:
 
@@ -599,6 +650,6 @@ else:
 
 
 st.caption(
-    "Simulated messaging only. "
-    "Translations use predefined examples, not an AI API."
+    "Simulated messages only. Automatic translation "
+    "uses predefined phrases, not an AI API."
 )
