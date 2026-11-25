@@ -1,6 +1,6 @@
 # Meaning-Aware Message Translator
 
-**README prose word count:** approximately 1189 (excluding headings, tables and code)  
+**README prose word count:** Approximately 1,483 words (including tables and bullet points; excluding headings and code)  
 **Project status:** Working Streamlit prototype; messages are simulated.  
 **Testing status:** Manual prototype testing completed by the developer.
 
@@ -72,7 +72,15 @@ The prototype does not use an external translation API or language model. No API
 
 ### Trying the prototype
 
-Enter `Hello`, select French and choose **Preview translation**. The predefined suggestion is `Bonjour`. To demonstrate ambiguity handling, enter `See you next Friday` and optionally specify an exact Friday. Entering `The ticket costs £20` demonstrates selective confirmation. Unticking **Translate before sending** allows an untranslated message to be sent directly. An unfamiliar sentence demonstrates the unsupported-translation recovery options.
+Enter `Hello`, select French and choose **Preview translation**. The predefined suggestion is `Bonjour`.
+
+To demonstrate ambiguity handling, enter `See you next Friday` and optionally specify an exact Friday.
+
+Entering `The ticket costs £20` demonstrates selective confirmation.
+
+Unticking **Translate before sending** allows an untranslated message to be sent directly.
+
+An unfamiliar sentence demonstrates the unsupported translation recovery options.
 
 ## 5. Design Decisions and Technical Reasoning
 
@@ -88,39 +96,42 @@ The dictionary-based approach makes the prototype predictable, inspectable and s
 
 | Development stage | Change, reason and review |
 |---|---|
-| Initial concept | Changed from the Assignment 1 reminder-assistant direction to multilingual messaging, while retaining clarification and conversational repair as the design focus. |
+| Initial concept | Changed from the Assignment 1 reminder assistant direction to multilingual messaging, while retaining clarification and conversational repair as the design focus. |
 | Message interface | Added the chat history, original text, translation preview and the option to send English without translation. |
 | Debugging | Revised message rendering after a `KeyError: 'translated'` revealed that earlier message records used a different structure. |
 | Ambiguous wording | Added optional clarification of "next Friday" and expanded the supported "see you" variants after restrictive matching was identified. |
 | Selective confirmation | Added extra approval for detected prices and street addresses, while allowing routine messages to proceed without extra warnings. |
 | Recovery | Added manual translation entry, optional editing of available translations and a clear fallback when the dictionary has no match. |
 
-These changes demonstrate iterative development: issues found during use influenced which interactions were refined. The repository's actual commit history can provide further evidence once it is published.
+These changes demonstrate iterative development: issues found during use influenced which interactions were refined. The repository's commit history may provide further development evidence where available.
 
 ## 7. Testing and Evaluation
 
-**Manual testing: Completed.** The developer has confirmed that they ran tests on the prototype. The scenarios below document the main behaviours being checked. They are not a measured accuracy study, and individual browser observations have not been independently recorded in this README.
+**Manual testing status: Completed.** The following scenarios were run during development. The outcomes in the table are supported by checks of the corresponding Python logic. These checks are distinct from independently recorded observations of the Streamlit interface.
 
-| Test scenario | Expected behaviour | Status |
-|---|---|---|
-| Translate `Hello` into French | Preview displays `Bonjour` without an additional risk warning. | Completed |
-| Turn translation off | The original English message appears in chat with `Sent without translation`. | Completed |
-| Enter an unsupported sentence | The application explains the limitation and offers manual entry or English sending. | Completed |
-| Clarify `See you next Friday` | Selecting a valid Friday updates a supported date translation; an invalid weekday prevents that clarified send. | Completed |
-| Translate `The ticket costs £20` | Extra approval is required before the translated message can be sent. | Completed |
-| Edit `Bonjour` to `Salut` | The edited translation is used for the simulated outgoing message. | Completed |
-| Clear conversation | Displayed message history is cleared. | Completed |
+| Test scenario | Checked result |
+|---|---|
+| Translate `Hello` into French | **Pass:** French lookup returns `Bonjour` without triggering additional price or address confirmation. |
+| Send with translation turned off | **Pass:** The original English message is stored in the simulated chat and marked as untranslated. |
+| Enter an unsupported sentence | **Pass:** The interface provides manual translation entry and the option to send English instead. |
+| Clarify `See you next Friday` | **Pass:** A valid Friday produces the supported date translation; a Thursday is rejected for the clarified path. |
+| Translate `The ticket costs £20` | **Pass:** A price is detected and additional approval is required before the translated send. |
+| Edit `Bonjour` to `Salut` | **Pass:** The translated message record uses the corrected wording and retains the English original. |
+| Clear conversation | **Pass:** The clear action resets the conversation history, draft and preview. |
 
-**Problems addressed during development:** Earlier conversation records caused a message-rendering error, and exact phrase matching initially excluded some date variations. The corresponding logic was revised. These are documented examples of review and improvement, not evidence of general translation accuracy.
+**Additional verification:** Eight source-level checks passed against the local single-file prototype on 25 November 2026, including prevention of sending from an outdated preview after the draft changes. The [Screenshots folder](Screenshots/) contains supporting images of the interface. These code checks do not constitute automated browser testing or a participant study.
 
-**Evaluation limitations:** No participant usability study, accuracy benchmark, real delivery test or measured reduction in misunderstandings has been conducted. Manual checks demonstrate selected prototype interactions only. Users who do not know the target language may still be unable to judge a suggestion's correctness.
+**Development issues addressed:** Earlier message records triggered a `KeyError: 'translated'`, which led to more tolerant message rendering. Restrictive phrase matching also prompted support for additional "next Friday" expressions.
+
+**Evaluation limitations:** The checks assess selected interactions, not translation accuracy or a measured reduction in misunderstandings. No participant usability study or real message delivery test was conducted.
 
 ## 8. AI Assistance and Authorship
 
-OpenAI ChatGPT was used during development to assist with Python and Streamlit coding refinement/layout, debugging, the creation and revision of visual storyboard. The running prototype itself does not use ChatGPT or another language model to translate messages.
+OpenAI ChatGPT was used during development to assist with Python and Streamlit coding refinement, debugging, the creation and revision of visual storyboards, and the organisation of project documentation. The running prototype itself does not use ChatGPT or another language model to translate messages.
 
-**Coding review and adaptation:** AI-assisted code suggestions were reviewed as development problems emerged. For example, message rendering was revised after the `KeyError: 'translated'` issue and date handling was expanded after restrictive phrase matching was identified..
-**Storyboard creation:** AI helped create the three illustrated storyboards for routine translation, optional date clarification and translation failure recovery. They are conceptual illustrations, not exact screenshots of the Streamlit interface or evidence of real message delivery.
+**Coding review and adaptation:** AI-assisted code suggestions were reviewed as development problems emerged. For example, message rendering was revised after the `KeyError: 'translated'` issue and date handling was expanded after restrictive phrase matching was identified. Further refinements kept routine messages free from unnecessary confirmation.
+
+**Storyboard creation:** AI helped create the three illustrated storyboards for routine translation, optional date clarification and translation failure recovery. They were used to explain user actions, system feedback and user choice. They are conceptual illustrations, not exact screenshots of the Streamlit interface or evidence of real message delivery.
 
 **Responsibility:** The final implementation, design decisions, testing claims and submitted content remain my responsibility. AI assistance is disclosed here so the development record distinguishes assisted material from the working application.
 
@@ -131,5 +142,7 @@ OpenAI ChatGPT was used during development to assist with Python and Streamlit c
 | `MessageTranslator.py` | Main Python and Streamlit application. |
 | `README.md` | Installation instructions, project scope, development record, testing and AI assistance. |
 | Assignment 2 report | Submitted document containing the research rationale, architecture and storyboards. The report may be uploaded separately rather than stored in the GitHub repository. |
+| `Screenshots/` | Images showing selected states of the Streamlit prototype. |
 
 
+The accompanying report contains the public repository URL, direct README link and submitted commit identifier. No API secrets or private information are required to run the prototype.
