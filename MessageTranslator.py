@@ -2,11 +2,15 @@
 import re
 import streamlit as st
 
-st.set_page_config(page_title="Message Translator", page_icon="💬")
+st.set_page_config(
+    page_title="Message Translator",
+    page_icon="💬"
+)
 
 st.title("💬 Message Translator")
 st.subheader("Chat with Alex")
 st.caption("Messaging prototype — messages are simulated")
+
 
 # -----------------------------------
 # TRANSLATIONS
@@ -22,8 +26,10 @@ translations = {
         "see you later": "Hasta luego",
         "i will see you next friday": "Nos vemos el próximo viernes.",
         "i'll see you next friday": "Nos vemos el próximo viernes.",
+        "see you next friday": "Nos vemos el próximo viernes.",
         "eyesight": "Vista"
     },
+
     "French": {
         "hello": "Bonjour",
         "how are you?": "Comment ça va ?",
@@ -33,8 +39,10 @@ translations = {
         "see you later": "À plus tard",
         "i will see you next friday": "Je te verrai vendredi prochain.",
         "i'll see you next friday": "Je te verrai vendredi prochain.",
+        "see you next friday": "À vendredi prochain.",
         "eyesight": "Vue"
     },
+
     "Punjabi": {
         "hello": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ",
         "how are you?": "ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ?",
@@ -44,28 +52,36 @@ translations = {
         "see you later": "ਫਿਰ ਮਿਲਾਂਗੇ",
         "i will see you next friday": "ਅਗਲੇ ਸ਼ੁੱਕਰਵਾਰ ਮਿਲਾਂਗੇ",
         "i'll see you next friday": "ਅਗਲੇ ਸ਼ੁੱਕਰਵਾਰ ਮਿਲਾਂਗੇ",
+        "see you next friday": "ਅਗਲੇ ਸ਼ੁੱਕਰਵਾਰ ਮਿਲਾਂਗੇ",
         "eyesight": "ਨਜ਼ਰ"
     }
 }
 
-# Month names for the date clarification example
+
+# -----------------------------------
+# MONTH NAMES
+# -----------------------------------
+
 months = {
     "Spanish": [
         "enero", "febrero", "marzo", "abril",
         "mayo", "junio", "julio", "agosto",
         "septiembre", "octubre", "noviembre", "diciembre"
     ],
+
     "French": [
         "janvier", "février", "mars", "avril",
         "mai", "juin", "juillet", "août",
         "septembre", "octobre", "novembre", "décembre"
     ],
+
     "Punjabi": [
         "ਜਨਵਰੀ", "ਫ਼ਰਵਰੀ", "ਮਾਰਚ", "ਅਪ੍ਰੈਲ",
         "ਮਈ", "ਜੂਨ", "ਜੁਲਾਈ", "ਅਗਸਤ",
         "ਸਤੰਬਰ", "ਅਕਤੂਬਰ", "ਨਵੰਬਰ", "ਦਸੰਬਰ"
     ]
 }
+
 
 # -----------------------------------
 # SESSION STATE
@@ -89,10 +105,15 @@ if "preview_number" not in st.session_state:
 # -----------------------------------
 
 def normalise(text):
-    return text.strip().lower().rstrip(".! ")
+    # Make matching less sensitive to punctuation
+    text = text.strip().lower()
+    text = text.replace("’", "'")
+    text = text.rstrip(".!? ")
+    return text
 
 
 def preview_message():
+
     message = st.session_state.draft.strip()
 
     if message:
@@ -105,6 +126,7 @@ def preview_message():
 
 
 def send_message(original, translation_key, language):
+
     translated = st.session_state[translation_key].strip()
 
     if not translated:
@@ -117,11 +139,13 @@ def send_message(original, translation_key, language):
         "language": language
     })
 
+    # Clear message after sending
     st.session_state.draft = ""
     st.session_state.preview = None
 
 
 def clear_conversation():
+
     st.session_state.messages = []
     st.session_state.draft = ""
     st.session_state.preview = None
@@ -129,8 +153,8 @@ def clear_conversation():
 
 def clarify_example_translation(selected_date, language):
     """
-    Translate the clarified version of the known
-    'I will see you next Friday' example.
+    Translate a clarified date for supported
+    'see you next Friday' messages.
     """
 
     day = selected_date.day
@@ -143,7 +167,7 @@ def clarify_example_translation(selected_date, language):
     elif language == "French":
         return f"Je te verrai le {day} {month} {year}."
 
-    else:
+    elif language == "Punjabi":
         return f"{day} {month} {year} ਨੂੰ ਮਿਲਾਂਗੇ।"
 
 
@@ -161,14 +185,21 @@ st.button(
 if not st.session_state.messages:
     st.info("No messages yet. Start a conversation below.")
 
+
 for message in st.session_state.messages:
 
-    with st.chat_message("user"):
+    sender = message.get("sender", "user")
+    role = "user" if sender in ("user", "You") else "assistant"
 
-        # Support messages from older versions too
+    with st.chat_message(role):
+
+        # Supports old and new message formats
         text = message.get(
             "translated",
-            message.get("text", message.get("original", ""))
+            message.get(
+                "text",
+                message.get("original", "")
+            )
         )
 
         st.write(text)
@@ -178,6 +209,7 @@ for message in st.session_state.messages:
                 f"Translated to {message.get('language', 'Unknown')} | "
                 f"Original: {message.get('original', '')}"
             )
+
 
 st.divider()
 
@@ -220,16 +252,23 @@ current_preview = (
 if st.session_state.preview == current_preview:
 
     original, language = current_preview
+
+    # Standardise message for matching
     key = normalise(original)
 
+    # Get predefined translation
     translation = translations[language].get(key, "")
+
     revised_original = original
 
     ready_to_send = True
     choice = "Not needed"
     selected_date = None
 
-    # Detect "next Friday"
+    # -----------------------------------
+    # DETECT AMBIGUOUS DATE
+    # -----------------------------------
+
     if re.search(r"\bnext friday\b", original, re.IGNORECASE):
 
         st.warning(
@@ -239,15 +278,21 @@ if st.session_state.preview == current_preview:
 
         choice = st.radio(
             "How would you like to handle this?",
-            ["Keep original wording", "Specify exact date"],
+            [
+                "Keep original wording",
+                "Specify exact date"
+            ],
             index=None,
             key=f"choice_{st.session_state.preview_number}"
         )
 
-        # Require a choice before sending
+        # Require user to make a decision
         ready_to_send = choice is not None
 
-        # User chooses to clarify
+        # -----------------------------------
+        # USER CHOOSES EXACT DATE
+        # -----------------------------------
+
         if choice == "Specify exact date":
 
             selected_date = st.date_input(
@@ -264,13 +309,14 @@ if st.session_state.preview == current_preview:
                 ready_to_send = False
 
             else:
-                # Replace "next Friday" with the chosen date
+                # Format selected date
                 date_text = (
                     f"{selected_date.day} "
                     f"{selected_date.strftime('%B')} "
                     f"{selected_date.year}"
                 )
 
+                # Update English message
                 revised_original = re.sub(
                     r"\bnext friday\b",
                     f"on {date_text}",
@@ -278,34 +324,47 @@ if st.session_state.preview == current_preview:
                     flags=re.IGNORECASE
                 )
 
-                # Automatic date translation only for
-                # our supported example sentence
+                # -----------------------------------
+                # FIX: SUPPORT SENTENCE VARIATIONS
+                # -----------------------------------
+
                 supported_examples = {
                     "i will see you next friday",
-                    "i'll see you next friday"
+                    "i'll see you next friday",
+                    "see you next friday"
                 }
 
-                if key in supported_examples:
+                # Use the normalised message
+                cleaned_message = normalise(original)
+
+                if cleaned_message in supported_examples:
+
+                    # Translate chosen date
                     translation = clarify_example_translation(
                         selected_date,
                         language
                     )
 
                 else:
+
+                    # Other sentences need manual translation
                     translation = ""
 
                     st.info(
-                        "This sentence is not supported by the "
-                        "demo's date translations. "
+                        "This sentence is not available in the "
+                        "demo's automatic date translator. "
                         "Enter the translation manually."
                     )
 
-    # Display the message after any clarification
+    # -----------------------------------
+    # DISPLAY MESSAGE PREVIEW
+    # -----------------------------------
+
     st.write("### Message preview")
+
     st.info(revised_original)
 
-    # Use a new editable field whenever the date or
-    # clarification choice changes
+    # Create a unique field when date/choice changes
     date_id = (
         selected_date.isoformat()
         if selected_date is not None
@@ -326,13 +385,17 @@ if st.session_state.preview == current_preview:
         height=100
     )
 
+    # Warn if no translation exists
     if not st.session_state[edit_key].strip():
         st.warning(
             "No predefined translation found. "
             "Enter a translation manually to continue."
         )
 
-    # Send only after the user has handled the warning
+    # -----------------------------------
+    # SEND MESSAGE
+    # -----------------------------------
+
     st.button(
         "📤 Send message",
         on_click=send_message,
@@ -349,6 +412,7 @@ elif st.session_state.preview is not None:
         "Your message or language has changed. "
         "Preview the translation again before sending."
     )
+
 
 st.caption(
     "All messages are simulated. "
