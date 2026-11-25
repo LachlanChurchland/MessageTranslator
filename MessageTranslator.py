@@ -9,7 +9,7 @@ st.subheader("Chat with Alex")
 st.caption("Messaging prototype — nothing is sent to a real person")
 
 # -----------------------------------
-# TRANSLATIONS
+# PREDEFINED TRANSLATIONS
 # -----------------------------------
 
 translations = {
@@ -38,8 +38,8 @@ translations = {
         "i'll see you next friday": "Je te verrai vendredi prochain.",
         "see you next friday": "À vendredi prochain.",
         "the ticket costs £20": "Le billet coûte 20 livres sterling.",
-        "meet me at 12 king street": "Retrouve-moi au 12 King Street.",
-        "eyesight": "Vue",
+        "meet me at 12 king street": "Nos vemos en el número 12 de King Street.",
+        "eyesight": "Vista",
     },
     "Punjabi": {
         "hello": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ",
@@ -57,27 +57,38 @@ translations = {
     },
 }
 
+# Correct the two French entries
+translations["French"]["meet me at 12 king street"] = (
+    "Retrouve-moi au 12 King Street."
+)
+translations["French"]["eyesight"] = "Vue"
+
+# Correct the Spanish entries
+translations["Spanish"]["meet me at 12 king street"] = (
+    "Nos vemos en el número 12 de King Street."
+)
+translations["Spanish"]["eyesight"] = "Vista"
+
+
 # -----------------------------------
 # MONTH NAMES
 # -----------------------------------
 
 month_names = {
     "Spanish": [
-        "enero", "febrero", "marzo", "abril",
-        "mayo", "junio", "julio", "agosto",
-        "septiembre", "octubre", "noviembre", "diciembre"
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
     ],
     "French": [
-        "janvier", "février", "mars", "avril",
-        "mai", "juin", "juillet", "août",
-        "septembre", "octobre", "novembre", "décembre"
+        "janvier", "février", "mars", "avril", "mai", "juin",
+        "juillet", "août", "septembre", "octobre", "novembre", "décembre"
     ],
     "Punjabi": [
-        "ਜਨਵਰੀ", "ਫ਼ਰਵਰੀ", "ਮਾਰਚ", "ਅਪ੍ਰੈਲ",
-        "ਮਈ", "ਜੂਨ", "ਜੁਲਾਈ", "ਅਗਸਤ",
-        "ਸਤੰਬਰ", "ਅਕਤੂਬਰ", "ਨਵੰਬਰ", "ਦਸੰਬਰ"
+        "ਜਨਵਰੀ", "ਫ਼ਰਵਰੀ", "ਮਾਰਚ", "ਅਪ੍ਰੈਲ", "ਮਈ", "ਜੂਨ",
+        "ਜੁਲਾਈ", "ਅਗਸਤ", "ਸਤੰਬਰ", "ਅਕਤੂਬਰ", "ਨਵੰਬਰ", "ਦਸੰਬਰ"
     ],
 }
+
 
 # -----------------------------------
 # SESSION STATE
@@ -88,6 +99,7 @@ for state_key, default in {
     "draft": "",
     "preview": None,
     "preview_number": 0,
+    "translate_before_sending": True,
 }.items():
     if state_key not in st.session_state:
         st.session_state[state_key] = default
@@ -99,33 +111,25 @@ for state_key, default in {
 
 def normalise(text):
     return " ".join(
-        text.strip()
-        .lower()
-        .replace("’", "'")
-        .rstrip(".!? ")
-        .split()
+        text.strip().lower().replace("’", "'").rstrip(".!? ").split()
     )
 
 
 def important_details(text):
-    """
-    Detect important details using predefined
-    text patterns, not an AI model.
-    """
+    """Rule-based detection of dates, prices and street addresses."""
 
     findings = []
 
     weekday = (
-        r"monday|tuesday|wednesday|thursday|"
-        r"friday|saturday|sunday"
+        r"monday|tuesday|wednesday|thursday|friday|saturday|sunday"
     )
 
     month = (
-        r"january|february|march|april|may|june|"
-        r"july|august|september|october|november|december"
+        r"january|february|march|april|may|june|july|august|"
+        r"september|october|november|december"
     )
 
-    # Check for dates
+    # Detect dates
     date_pattern = (
         rf"\b(?:today|tomorrow|tonight|{weekday})\b"
         rf"|\b\d{{1,2}}\s+(?:{month})\b"
@@ -137,7 +141,7 @@ def important_details(text):
     if re.search(date_pattern, text, re.IGNORECASE):
         findings.append("Date or time")
 
-    # Check for prices
+    # Detect prices
     price_pattern = (
         r"[£€$₹]\s*\d[\d,.]*"
         r"|\b\d[\d,.]*\s*"
@@ -147,12 +151,11 @@ def important_details(text):
     if re.search(price_pattern, text, re.IGNORECASE):
         findings.append("Price or payment amount")
 
-    # Check for street addresses
+    # Detect street addresses
     street_pattern = (
         r"\b\d{1,5}\s+"
         r"(?:[A-Za-z.'-]+\s+){0,4}"
-        r"(?:Street|St|Road|Rd|Avenue|Ave|Lane|Ln|"
-        r"Drive|Dr|Boulevard|Blvd)\b"
+        r"(?:Street|St|Road|Rd|Avenue|Ave|Lane|Ln|Drive|Dr|Boulevard|Blvd)\b"
     )
 
     if re.search(street_pattern, text, re.IGNORECASE):
@@ -161,11 +164,11 @@ def important_details(text):
     return findings
 
 
-def translated_date(example_date, language):
+def translated_date(selected_date, language):
 
-    day = example_date.day
-    month = month_names[language][example_date.month - 1]
-    year = example_date.year
+    day = selected_date.day
+    month = month_names[language][selected_date.month - 1]
+    year = selected_date.year
 
     if language == "Spanish":
         return f"Nos vemos el {day} de {month} de {year}."
@@ -174,6 +177,10 @@ def translated_date(example_date, language):
         return f"Je te verrai le {day} {month} {year}."
 
     return f"{day} {month} {year} ਨੂੰ ਮਿਲਾਂਗੇ।"
+
+
+def reset_preview():
+    st.session_state.preview = None
 
 
 def preview_message():
@@ -189,23 +196,32 @@ def preview_message():
         st.session_state.preview_number += 1
 
 
-def clear_conversation():
+def send_untranslated():
+    """Send original text to simulated conversation."""
 
-    st.session_state.messages = []
+    message = st.session_state.draft.strip()
+
+    if not message or st.session_state.translate_before_sending:
+        return
+
+    st.session_state.messages.append({
+        "sender": "user",
+        "text": message,
+        "untranslated": True,
+    })
+
     st.session_state.draft = ""
     st.session_state.preview = None
 
 
-def send_message(
+def send_translated(
     original,
     translation_field,
     language,
-    confirmation_field,
-    can_proceed
+    confirm_field
 ):
 
-    # Check that the preview is still valid
-    if not can_proceed:
+    if not st.session_state.translate_before_sending:
         return
 
     if st.session_state.preview != (
@@ -221,18 +237,16 @@ def send_message(
     if not translated:
         return
 
-    # Require approval for important details
+    # Require confirmation for important details
     if important_details(original + "\n" + translated):
 
         if (
-            not confirmation_field
-            or not st.session_state.get(
-                confirmation_field, False
-            )
+            not confirm_field
+            or not st.session_state.get(confirm_field, False)
         ):
             return
 
-    # Store the simulated message
+    # Store translated message
     st.session_state.messages.append({
         "sender": "user",
         "original": original,
@@ -240,7 +254,13 @@ def send_message(
         "language": language,
     })
 
-    # Reset input fields
+    st.session_state.draft = ""
+    st.session_state.preview = None
+
+
+def clear_conversation():
+
+    st.session_state.messages = []
     st.session_state.draft = ""
     st.session_state.preview = None
 
@@ -280,10 +300,15 @@ for item in st.session_state.messages:
         )
 
         if "translated" in item:
+
             st.caption(
                 f"Translated to {item.get('language', 'Unknown')} | "
                 f"Original: {item.get('original', '')}"
             )
+
+        elif item.get("untranslated", False):
+
+            st.caption("Sent without translation")
 
 st.divider()
 
@@ -294,248 +319,284 @@ st.divider()
 
 st.write("### New message")
 
-st.selectbox(
-    "Translate into:",
-    ["Spanish", "French", "Punjabi"],
-    key="language"
+# NEW: Enable or disable translation
+st.checkbox(
+    "Translate before sending",
+    key="translate_before_sending",
+    on_change=reset_preview,
 )
+
+# Only show language selection when translating
+if st.session_state.translate_before_sending:
+
+    st.selectbox(
+        "Translate into:",
+        ["Spanish", "French", "Punjabi"],
+        key="language",
+    )
 
 st.text_area(
     "Type your message:",
     key="draft",
     height=100,
-    placeholder="Type a message to Alex..."
+    placeholder="Type a message to Alex...",
 )
 
-st.button(
-    "🌐 Preview translation",
-    on_click=preview_message,
-    disabled=not bool(
-        st.session_state.draft.strip()
+
+# -----------------------------------
+# SEND WITHOUT TRANSLATION
+# -----------------------------------
+
+if not st.session_state.translate_before_sending:
+
+    st.button(
+        "📤 Send original message (simulation)",
+        on_click=send_untranslated,
+        disabled=not bool(
+            st.session_state.draft.strip()
+        ),
     )
-)
+
+    st.caption(
+        "Your message will appear exactly as typed."
+    )
 
 
 # -----------------------------------
-# TRANSLATION AND CLARIFICATION
+# SEND WITH TRANSLATION
 # -----------------------------------
 
-current_preview = (
-    st.session_state.draft.strip(),
-    st.session_state.language
-)
+else:
 
-if st.session_state.preview == current_preview:
+    st.button(
+        "🌐 Preview translation",
+        on_click=preview_message,
+        disabled=not bool(
+            st.session_state.draft.strip()
+        ),
+    )
 
-    original, language = current_preview
-    key = normalise(original)
+    current_preview = (
+        st.session_state.draft.strip(),
+        st.session_state.language,
+    )
 
-    revised_original = original
+    if st.session_state.preview == current_preview:
 
-    translated = {
-        normalise(k): v
-        for k, v in translations[language].items()
-    }.get(key, "")
+        original, language = current_preview
 
-    selected_date = None
-    choice = "Not needed"
-    ready = True
+        key = normalise(original)
 
-    # -----------------------------------
-    # DETECT "NEXT FRIDAY"
-    # -----------------------------------
+        revised_original = original
 
-    if re.search(
-        r"\bnext\s+friday\b",
-        original,
-        re.IGNORECASE
-    ):
+        # Get predefined translation
+        translated = {
+            normalise(k): v
+            for k, v in translations[language].items()
+        }.get(key, "")
 
-        st.warning(
-            "'Next Friday' may refer to different dates. "
-            "Would you like to clarify?"
-        )
-
-        choice = st.radio(
-            "How would you like to handle this?",
-            [
-                "Keep original wording",
-                "Specify exact date"
-            ],
-            index=None,
-            key=f"choice_{st.session_state.preview_number}",
-        )
-
-        ready = choice is not None
+        selected_date = None
+        choice = "Not needed"
+        ready = True
 
         # -----------------------------------
-        # EXACT DATE CLARIFICATION
+        # DETECT AMBIGUOUS "NEXT FRIDAY"
         # -----------------------------------
 
-        if choice == "Specify exact date":
+        if re.search(
+            r"\bnext\s+friday\b",
+            original,
+            re.IGNORECASE
+        ):
 
-            selected_date = st.date_input(
-                "Which exact Friday do you mean?",
-                value=None,
-                key=f"date_{st.session_state.preview_number}",
+            st.warning(
+                "'Next Friday' may refer to different dates. "
+                "Would you like to clarify?"
             )
 
-            if selected_date is None:
-                ready = False
+            choice = st.radio(
+                "How would you like to handle this?",
+                [
+                    "Keep original wording",
+                    "Specify exact date"
+                ],
+                index=None,
+                key=f"choice_{st.session_state.preview_number}",
+            )
 
-            elif selected_date.weekday() != 4:
-                st.warning("Please choose a Friday.")
-                ready = False
+            ready = choice is not None
 
-            else:
+            # -----------------------------------
+            # CLARIFY EXACT DATE
+            # -----------------------------------
 
-                date_text = (
-                    f"{selected_date.day} "
-                    f"{selected_date.strftime('%B')} "
-                    f"{selected_date.year}"
+            if choice == "Specify exact date":
+
+                selected_date = st.date_input(
+                    "Which exact Friday do you mean?",
+                    value=None,
+                    key=f"date_{st.session_state.preview_number}",
                 )
 
-                revised_original = re.sub(
-                    r"\bnext\s+friday\b",
-                    f"on {date_text}",
-                    original,
-                    flags=re.IGNORECASE
-                )
+                if selected_date is None:
+                    ready = False
 
-                supported = {
-                    "i will see you next friday",
-                    "i'll see you next friday",
-                    "see you next friday"
-                }
-
-                if key in supported:
-
-                    translated = translated_date(
-                        selected_date,
-                        language
-                    )
+                elif selected_date.weekday() != 4:
+                    st.warning("Please choose a Friday.")
+                    ready = False
 
                 else:
 
-                    translated = ""
-
-                    st.info(
-                        "The demo has no automatic date "
-                        "translation for this sentence. "
-                        "Enter it manually."
+                    date_text = (
+                        f"{selected_date.day} "
+                        f"{selected_date.strftime('%B')} "
+                        f"{selected_date.year}"
                     )
 
-    # -----------------------------------
-    # MESSAGE PREVIEW
-    # -----------------------------------
+                    revised_original = re.sub(
+                        r"\b(?:on\s+)?next\s+friday\b",
+                        f"on {date_text}",
+                        original,
+                        flags=re.IGNORECASE,
+                    )
 
-    st.write("### Message preview")
-    st.info(revised_original)
+                    supported = {
+                        "i will see you next friday",
+                        "i'll see you next friday",
+                        "see you next friday",
+                    }
 
-    date_id = (
-        selected_date.isoformat()
-        if selected_date is not None
-        else "none"
-    )
+                    if key in supported:
 
-    edit_key = (
-        f"edit_{st.session_state.preview_number}_"
-        f"{language}_{choice}_{date_id}"
-    )
+                        translated = translated_date(
+                            selected_date,
+                            language
+                        )
 
-    if edit_key not in st.session_state:
-        st.session_state[edit_key] = translated
+                    else:
 
-    st.text_area(
-        f"Review or edit {language} translation:",
-        key=edit_key,
-        height=100
-    )
+                        translated = ""
 
-    current_translation = (
-        st.session_state[edit_key].strip()
-    )
+                        st.info(
+                            "The demo has no automatic date "
+                            "translation for this sentence. "
+                            "Enter it manually."
+                        )
 
-    if not current_translation:
-        st.warning(
-            "No automatic translation found. "
-            "Enter one manually to continue."
+        # -----------------------------------
+        # MESSAGE PREVIEW
+        # -----------------------------------
+
+        st.write("### Message preview")
+
+        st.info(revised_original)
+
+        date_id = (
+            selected_date.isoformat()
+            if selected_date
+            else "none"
         )
 
-    # -----------------------------------
-    # RISK-SENSITIVE CONFIRMATION
-    # -----------------------------------
-
-    risks = important_details(
-        revised_original + "\n" + current_translation
-    )
-
-    confirm_key = None
-
-    if risks:
-
-        st.warning(
-            "⚠️ Important details detected: "
-            + ", ".join(risks)
-            + ". Check them before sending."
+        edit_key = (
+            f"edit_{st.session_state.preview_number}_"
+            f"{language}_{choice}_{date_id}"
         )
 
-        st.caption(
-            "This is a basic keyword/pattern check, "
-            "not a guarantee that the translation is accurate."
+        if edit_key not in st.session_state:
+            st.session_state[edit_key] = translated
+
+        st.text_area(
+            f"Review or edit {language} translation:",
+            key=edit_key,
+            height=100,
         )
 
-        # Create a different approval checkbox
-        # if the message or translation changes
-        content_signature = hashlib.sha256(
+        current_translation = (
+            st.session_state[edit_key].strip()
+        )
+
+        if not current_translation:
+
+            st.warning(
+                "No automatic translation found. "
+                "Enter one manually to continue."
+            )
+
+        # -----------------------------------
+        # RISK-SENSITIVE CONFIRMATION
+        # -----------------------------------
+
+        risks = important_details(
+            revised_original + "\n" + current_translation
+        )
+
+        confirm_key = None
+
+        if risks:
+
+            st.warning(
+                "⚠️ Important details detected: "
+                + ", ".join(risks)
+                + ". Check them before sending."
+            )
+
+            st.caption(
+                "This is a basic pattern check, "
+                "not a guarantee that the translation is accurate."
+            )
+
+            # Reset confirmation if message changes
+            content_signature = hashlib.sha256(
+                (
+                    f"{st.session_state.preview_number}|"
+                    f"{revised_original}|"
+                    f"{language}|"
+                    f"{current_translation}"
+                ).encode("utf-8")
+            ).hexdigest()[:16]
+
+            confirm_key = (
+                f"approve_{content_signature}"
+            )
+
+            approved = st.checkbox(
+                "I have checked these details "
+                "and approve this translation",
+                key=confirm_key,
+            )
+
+            ready = ready and approved
+
+        # -----------------------------------
+        # SEND TRANSLATED MESSAGE
+        # -----------------------------------
+
+        st.button(
             (
-                f"{st.session_state.preview_number}|"
-                f"{revised_original}|"
-                f"{language}|"
-                f"{current_translation}"
-            ).encode("utf-8")
-        ).hexdigest()[:16]
-
-        confirm_key = f"approve_{content_signature}"
-
-        approved = st.checkbox(
-            "I have checked these details "
-            "and approve this translation",
-            key=confirm_key,
+                "✅ Confirm & send (simulation)"
+                if risks
+                else "📤 Send message (simulation)"
+            ),
+            on_click=send_translated,
+            args=(
+                revised_original,
+                edit_key,
+                language,
+                confirm_key
+            ),
+            disabled=not (
+                ready
+                and bool(current_translation)
+            ),
         )
 
-        ready = ready and approved
+    elif st.session_state.preview is not None:
 
-    # -----------------------------------
-    # SEND MESSAGE
-    # -----------------------------------
+        st.info(
+            "Your message or language changed. "
+            "Preview again before sending."
+        )
 
-    st.button(
-        (
-            "✅ Confirm & send (simulation)"
-            if risks
-            else "📤 Send message (simulation)"
-        ),
-        on_click=send_message,
-        args=(
-            revised_original,
-            edit_key,
-            language,
-            confirm_key,
-            ready
-        ),
-        disabled=not (
-            ready
-            and bool(current_translation)
-        ),
-    )
-
-elif st.session_state.preview is not None:
-
-    st.info(
-        "Your message or language changed. "
-        "Preview again before sending."
-    )
 
 st.caption(
     "Simulated messaging only. "
