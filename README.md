@@ -132,8 +132,4 @@ OpenAI ChatGPT was used during development to assist with Python and Streamlit c
 | `README.md` | Installation instructions, project scope, development record, testing and AI assistance. |
 | Assignment 2 report | Submitted document containing the research rationale, architecture and storyboards. The report may be uploaded separately rather than stored in the GitHub repository. |
 
-**Repository:** The GitHub repository containing this README.  
-**README:** `README.md` in the root of that repository.  
-**Submitted commit:** To be identified by its exact Git commit hash when the final version is pushed.
 
-The accompanying report must contain the public repository URL, direct README link and exact submitted commit hash. Those identifiers cannot be supplied before the repository and final commit are available. No API secrets or private information are required to run the prototype.
