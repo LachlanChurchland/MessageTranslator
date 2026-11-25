@@ -1,6 +1,6 @@
 # Meaning-Aware Message Translator
 
-**README prose word count:** Approximately 1,483 words (including tables and bullet points; excluding headings and code)  
+**README prose word count:** approximately 1383 (including tables and bullet points; excluding headings and code blocks)  
 **Project status:** Working Streamlit prototype; messages are simulated.  
 **Testing status:** Manual prototype testing completed by the developer.
 
@@ -33,17 +33,9 @@ Messages appear in a simulated conversation with Alex. They are not delivered to
 
 Real messaging, user accounts, permanent conversation storage, translation of unrestricted sentences and AI-based verification of translation accuracy are not implemented.
 
-### Future development priorities
+### Future development priorities (planned)
 
-If the prototype were developed into a practical messaging application, I would prioritise:
-
-- **More languages:** Expand beyond French, Spanish and Punjabi, allowing users to select from a wider range of languages and potentially translate in both directions.
-- **Translation API integration:** Connect to an established translation service so messages outside the predefined dictionary could be translated. The interface would still show previews, correction options and clear uncertainty or failure messages.
-- **Real messaging integration:** Replace the simulated conversation with authenticated contacts and actual message delivery, including appropriate privacy and security controls.
-- **Better handling of meaning and context:** Improve detection of ambiguous wording, names, dates, prices and addresses, while allowing the sender to confirm or correct important details.
-- **Persistent conversations and evaluation:** Introduce secure storage and conduct usability testing with multilingual participants to assess comprehension, interruption burden and translation errors.
-
-These are proposed extensions only. The submitted version remains a small, rule-based Streamlit prototype with simulated delivery, not a connected translation or messaging service.
+Possible extensions include a wider range of languages, translation of unknown phrases, real message delivery with appropriate privacy controls, more context-aware clarification and a multilingual user study. These are **planned directions**, not implemented capabilities in the submitted prototype.
 
 ## 3. Technology Stack
 
@@ -54,7 +46,7 @@ The application was developed using:
 - **Python standard library:** Regular expressions for identifying predefined message patterns and hashing for managing confirmation state.
 - **Translation dictionaries:** Predefined translations and date templates.
 
-The prototype does not use an external translation API or language model. No API key is required.
+The implemented scenarios use predefined translations and local Python rules. Python and Streamlit are the only required technologies.
 
 ## 4. Installation and Running Instructions
 
@@ -72,38 +64,26 @@ The prototype does not use an external translation API or language model. No API
 
 ### Trying the prototype
 
-Enter `Hello`, select French and choose **Preview translation**. The predefined suggestion is `Bonjour`.
-
-To demonstrate ambiguity handling, enter `See you next Friday` and optionally specify an exact Friday.
-
-Entering `The ticket costs £20` demonstrates selective confirmation.
-
-Unticking **Translate before sending** allows an untranslated message to be sent directly.
-
-An unfamiliar sentence demonstrates the unsupported translation recovery options.
+Enter `Hello`, select French and choose **Preview translation**. The predefined suggestion is `Bonjour`. To demonstrate ambiguity handling, enter `See you next Friday` and optionally specify an exact Friday. Entering `The ticket costs £20` demonstrates selective confirmation. Unticking **Translate before sending** allows an untranslated message to be sent directly. An unfamiliar sentence demonstrates the unsupported-translation recovery options.
 
 ## 5. Design Decisions and Technical Reasoning
 
-The initial project explored conversational misunderstandings in intelligent assistants. During development, the idea shifted towards multilingual messaging, retaining the underlying concerns of clarification, feedback and conversational repair.
+The project changed from a reminder assistant to multilingual messaging while retaining the original focus on misunderstanding and conversational repair. Translation remains optional; date clarification is offered when relevant; and extra confirmation is restricted to detected prices and addresses. This keeps routine exchanges relatively uninterrupted.
 
-The prototype was deliberately designed to avoid excessive interruptions. Routine translations do not require additional confirmation beyond the normal sending action. Clarification is offered when "next Friday" is detected but remains optional. Extra confirmation is reserved for detected prices and street addresses, where an incorrect translation could affect plans or costs.
-
-When users edit the original text or switch languages, the previous preview becomes invalid and must be regenerated. For consequential details, changing the message or translated wording invalidates the previous approval. These rules help prevent stale previews and approvals from being reused.
-
-The dictionary-based approach makes the prototype predictable, inspectable and straightforward to test. Its disadvantage is limited coverage and little context sensitivity. The system cannot translate arbitrary sentences or judge whether the suggested meaning is correct. Pattern rules may also miss important details or identify harmless text, so the interface exposes its limitations rather than implying complete language understanding.
+Editing the source or changing language invalidates the previous preview. Changing a translated message with important details invalidates its approval. Predefined phrases make these interactions repeatable, at the cost of limited linguistic coverage and context sensitivity. The application therefore identifies unsupported input rather than implying that it has understood arbitrary messages.
 
 ## 6. Development Record
 
 | Development stage | Change, reason and review |
 |---|---|
-| Initial concept | Changed from the Assignment 1 reminder assistant direction to multilingual messaging, while retaining clarification and conversational repair as the design focus. |
+| Initial concept | Changed from the Assignment 1 reminder-assistant direction to multilingual messaging, while retaining clarification and conversational repair as the design focus. |
 | Message interface | Added the chat history, original text, translation preview and the option to send English without translation. |
 | Debugging | Revised message rendering after a `KeyError: 'translated'` revealed that earlier message records used a different structure. |
 | Ambiguous wording | Added optional clarification of "next Friday" and expanded the supported "see you" variants after restrictive matching was identified. |
 | Selective confirmation | Added extra approval for detected prices and street addresses, while allowing routine messages to proceed without extra warnings. |
 | Recovery | Added manual translation entry, optional editing of available translations and a clear fallback when the dictionary has no match. |
 
-These changes demonstrate iterative development: issues found during use influenced which interactions were refined. The repository's commit history may provide further development evidence where available.
+These changes demonstrate iterative development: problems encountered during use influenced the interactions that were refined. The repository's **Commits** history provides a further record of revisions.
 
 ## 7. Testing and Evaluation
 
@@ -119,21 +99,24 @@ These changes demonstrate iterative development: issues found during use influen
 | Edit `Bonjour` to `Salut` | **Pass:** The translated message record uses the corrected wording and retains the English original. |
 | Clear conversation | **Pass:** The clear action resets the conversation history, draft and preview. |
 
-**Additional verification:** Eight source-level checks passed against the local single-file prototype on 25 November 2026, including prevention of sending from an outdated preview after the draft changes. The [Screenshots folder](Screenshots/) contains supporting images of the interface. These code checks do not constitute automated browser testing or a participant study.
+**Additional verification:** Eight source-level checks passed against the local single-file prototype on 25 November 2026, including prevention of sending from an outdated preview after the draft changes. The [`Screenshots/`](Screenshots/) folder contains supporting images of the interface. These code checks do not constitute automated browser testing or a participant study.
 
-**Development issues addressed:** Earlier message records triggered a `KeyError: 'translated'`, which led to more tolerant message rendering. Restrictive phrase matching also prompted support for additional "next Friday" expressions.
+**Development issues addressed:** Earlier message records triggered a `KeyError: 'translated'`, which led to more tolerant message rendering. Restrictive phrase matching also prompted support for additional “next Friday” expressions.
 
 **Evaluation limitations:** The checks assess selected interactions, not translation accuracy or a measured reduction in misunderstandings. No participant usability study or real message delivery test was conducted.
 
-## 8. AI Assistance and Authorship
+## 8. AI Assistance, Authorship and Review
 
-OpenAI ChatGPT was used during development to assist with Python and Streamlit coding refinement, debugging, the creation and revision of visual storyboards, and the organisation of project documentation. The running prototype itself does not use ChatGPT or another language model to translate messages.
+**Tool and purpose:** I used OpenAI ChatGPT mainly to improve the organisation, formatting and visual layout of the report and README, help prepare illustrative translation examples and create the storyboards. I also consulted it when I could not readily identify solutions to particular development bugs. During this troubleshooting it suggested implementation changes, which I reviewed and checked against the working prototype.
 
-**Coding review and adaptation:** AI-assisted code suggestions were reviewed as development problems emerged. For example, message rendering was revised after the `KeyError: 'translated'` issue and date handling was expanded after restrictive phrase matching was identified. Further refinements kept routine messages free from unnecessary confirmation.
+| Area | My work and how AI assistance was reviewed |
+|---|---|
+| Project design | I selected the multilingual messaging problem and decided to demonstrate optional translation, clarification, correction and selective confirmation. These decisions responded to the interaction problems I wanted to investigate. |
+| Difficult bugs | I asked ChatGPT to help explain a `KeyError: 'translated'` caused by older chat records and the limited recognition of variations of “next Friday”. I examined the suggested changes, adapted the message handling and date examples, and checked the relevant interaction paths. |
+| Translation examples | ChatGPT helped suggest wording for the short French, Spanish and Punjabi demonstration phrases and date-related examples. These are fixed examples used to demonstrate the interface, not independently validated translations or evidence of general translation accuracy. |
+| Layout and illustrations | ChatGPT helped organise and format the report and README and generate the storyboard illustrations. I reviewed the figures and corrected an inaccurate English-send control and fictional delivery indicators so the illustrations better reflected the prototype. |
 
-**Storyboard creation:** AI helped create the three illustrated storyboards for routine translation, optional date clarification and translation failure recovery. They were used to explain user actions, system feedback and user choice. They are conceptual illustrations, not exact screenshots of the Streamlit interface or evidence of real message delivery.
-
-**Responsibility:** The final implementation, design decisions, testing claims and submitted content remain my responsibility. AI assistance is disclosed here so the development record distinguishes assisted material from the working application.
+**Authorship and limitations:** Some implementation suggestions came from ChatGPT during development and debugging, but the submitted project decisions, review of suggested changes and testing record are my responsibility. The storyboards are illustrative rather than screenshots. Academic research is cited in the report; actual interface screenshots are in [`Screenshots/`](Screenshots/).
 
 ## 9. Project Files and Submission
 
@@ -141,8 +124,11 @@ OpenAI ChatGPT was used during development to assist with Python and Streamlit c
 |---|---|
 | `MessageTranslator.py` | Main Python and Streamlit application. |
 | `README.md` | Installation instructions, project scope, development record, testing and AI assistance. |
-| Assignment 2 report | Submitted document containing the research rationale, architecture and storyboards. The report may be uploaded separately rather than stored in the GitHub repository. |
-| `Screenshots/` | Images showing selected states of the Streamlit prototype. |
+| Assignment 2 report | Submitted document containing the research rationale, architecture and storyboards. It may be uploaded separately. |
+| `Screenshots/` | Screenshots of selected working Streamlit interface states, separate from the illustrated storyboards. |
 
+**Repository:** [MessageTranslator on GitHub](https://github.com/LachlanChurchland/MessageTranslator).  
+**README:** [README.md on GitHub](https://github.com/LachlanChurchland/MessageTranslator/blob/main/README.md).  
+**Repository commit recorded for this report:** [`07b45eb1653559339ce13b190b3b3d3221ad6a69`](https://github.com/LachlanChurchland/MessageTranslator/commit/07b45eb1653559339ce13b190b3b3d3221ad6a69).
 
-The accompanying report contains the public repository URL, direct README link and submitted commit identifier. No API secrets or private information are required to run the prototype.
+The report identifies the same repository checkpoint. **After pushing any further changes, replace the hash in both the README and the report with the new final commit hash.** No private credentials are needed to run the prototype.
