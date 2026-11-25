@@ -117,11 +117,10 @@ These changes demonstrate iterative development: issues found during use influen
 
 ## 8. AI Assistance and Authorship
 
-OpenAI ChatGPT was used during development to assist with Python and Streamlit coding refinement, debugging, the creation and revision of visual storyboards, and the organisation of project documentation. The running prototype itself does not use ChatGPT or another language model to translate messages.
+OpenAI ChatGPT was used during development to assist with Python and Streamlit coding refinement/layout, debugging, the creation and revision of visual storyboard. The running prototype itself does not use ChatGPT or another language model to translate messages.
 
-**Coding review and adaptation:** AI-assisted code suggestions were reviewed as development problems emerged. For example, message rendering was revised after the `KeyError: 'translated'` issue and date handling was expanded after restrictive phrase matching was identified. Further refinements kept routine messages free from unnecessary confirmation.
-
-**Storyboard creation:** AI helped create the three illustrated storyboards for routine translation, optional date clarification and translation failure recovery. They were used to explain user actions, system feedback and user choice. They are conceptual illustrations, not exact screenshots of the Streamlit interface or evidence of real message delivery.
+**Coding review and adaptation:** AI-assisted code suggestions were reviewed as development problems emerged. For example, message rendering was revised after the `KeyError: 'translated'` issue and date handling was expanded after restrictive phrase matching was identified..
+**Storyboard creation:** AI helped create the three illustrated storyboards for routine translation, optional date clarification and translation failure recovery. They are conceptual illustrations, not exact screenshots of the Streamlit interface or evidence of real message delivery.
 
 **Responsibility:** The final implementation, design decisions, testing claims and submitted content remain my responsibility. AI assistance is disclosed here so the development record distinguishes assisted material from the working application.
 
